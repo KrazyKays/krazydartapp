@@ -3,6 +3,7 @@ const assert = require("node:assert/strict");
 const {
   createGame,
   registerDart,
+  finishVisit,
   setMultiplier,
   setGame,
   getGame,
@@ -238,6 +239,48 @@ test("Rotation correcte de plusieurs joueurs après bust sur score 1", () => {
   assert.equal(game.players[1].score, 20, "Le score de Bob revient à 20");
 });
 
+test("En solo, le joueur conserve la main après une volée et le numéro de tour progresse", () => {
+  const game = setupTestGame({ players: ["Alice"], initialScore: 301 });
+
+  registerDart("1");
+  registerDart("2");
+  registerDart("3");
+
+  assert.equal(game.currentPlayer, 0);
+  assert.equal(game.round, 2);
+  assert.equal(game.players[0].score, 295);
+
+  registerDart("5");
+  finishVisit();
+
+  assert.equal(game.currentPlayer, 0);
+  assert.equal(game.round, 3);
+  assert.equal(game.players[0].score, 290);
+
+  undo();
+  const restoredGame = getGame();
+  assert.equal(restoredGame.currentPlayer, 0);
+  assert.equal(restoredGame.round, 2);
+  assert.equal(restoredGame.players[0].score, 290);
+  assert.equal(restoredGame.dartsInVisit, 1);
+});
+
+test("En solo, un bust annule la volée et permet au joueur de rejouer", () => {
+  const game = setupTestGame({
+    players: ["Alice"],
+    initialScore: 20,
+    doubleOut: true,
+  });
+
+  registerDart("19");
+
+  assert.equal(game.players[0].score, 20);
+  assert.equal(game.players[0].stats.busts, 1);
+  assert.equal(game.currentPlayer, 0);
+  assert.equal(game.round, 2);
+  assert.equal(game.dartsInVisit, 0);
+});
+
 test("Double In activé : un joueur non-ouvert ne peut pas décrémenter son score", () => {
   const game = setupTestGame({
     initialScore: 20,
@@ -264,4 +307,3 @@ test("Double In activé : un joueur non-ouvert ne peut pas décrémenter son sco
   assert.equal(player.score, 0);
   assert.equal(game.winner, player.id, "Alice remporte la partie");
 });
-

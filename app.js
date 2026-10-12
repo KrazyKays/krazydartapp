@@ -70,7 +70,7 @@ function addPlayerField(name = "") {
   remove.textContent = "×";
   remove.setAttribute("aria-label", "Retirer ce joueur");
   remove.addEventListener("click", () => {
-    if (playerList.children.length <= 2) return;
+    if (playerList.children.length <= 1) return;
     row.remove();
     updatePlayerFields();
   });
@@ -87,7 +87,7 @@ function updatePlayerFields() {
     const input = row.querySelector("input");
     input.placeholder = `Joueur ${index + 1}`;
     input.setAttribute("aria-label", `Nom du joueur ${index + 1}`);
-    row.querySelector("button").disabled = rows.length <= 2;
+    row.querySelector("button").disabled = rows.length <= 1;
   });
 }
 
@@ -377,6 +377,7 @@ function renderActiveTurnSummary() {
 
 function renderCompactScoreboard() {
   const scoreboard = document.querySelector("#compact-player-list");
+  scoreboard.parentElement.hidden = game.players.length <= 1;
   scoreboard.replaceChildren();
 
   game.players.forEach((player, index) => {
@@ -610,7 +611,7 @@ function startGame(event) {
   event.preventDefault();
   const names = [...playerList.querySelectorAll("input")]
     .map((input, index) => input.value.trim() || `Joueur ${index + 1}`);
-  if (names.length < 2 || names.length > 8) return;
+  if (names.length < 1 || names.length > 8) return;
 
   history.length = 0;
   game = createGame(modeSelect.value, names, {
@@ -653,7 +654,6 @@ if (typeof document !== "undefined") {
   setupForm.addEventListener("submit", startGame);
 
   addPlayerField("Joueur 1");
-  addPlayerField("Joueur 2");
   createDartButtons();
   setMultiplier(selectedMultiplier);
   updateRulesSummary();

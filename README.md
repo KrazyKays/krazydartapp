@@ -6,7 +6,7 @@ Application web statique, légère et en français pour compter les points aux f
 
 - **301** avec options double in et double out.
 - **101** pour les parties rapides, avec les mêmes options.
-- De 2 à 8 joueurs, saisie des fléchettes, volées et historique récent.
+- De 1 à 8 joueurs, pour les parties en solo sans adversaire ou les parties multijoueurs, avec saisie des fléchettes, volées et historique récent.
 - Interface adaptée au mobile : score et volée du joueur actif mis en avant, scores et dernières volées des autres joueurs toujours visibles en format compact. Les règles avancées sont repliées au démarrage.
 - Annulation du dernier lancer (fonction disponible pendant une partie, pas un mode de jeu).
 - Résumé des règles qui s'adapte au mode et aux options sélectionnés.
