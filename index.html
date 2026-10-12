@@ -80,7 +80,6 @@
               <span id="round-label" class="round-label"></span>
             </div>
             <div id="scoreboard"></div>
-            <div id="winner-banner" class="winner-banner" hidden></div>
             <div id="visit-log" class="visit-log">
               <p class="eyebrow">DERNIÈRES FLÉCHETTES</p>
               <ol id="log-list"></ol>
@@ -127,12 +126,43 @@
               <button id="undo-button" class="secondary-button" type="button">↶ Annuler le lancer</button>
               <button id="end-turn-button" class="secondary-button" type="button">Terminer la volée</button>
             </div>
-            <button id="share-button" class="primary-button share-button" type="button" hidden>Partager le résultat <span aria-hidden="true">↗</span></button>
-            <p id="share-help" class="privacy-note share-help" hidden>Image PNG : partage direct si disponible, sinon téléchargement.</p>
             <p id="game-message" class="game-message" role="status" aria-live="polite"></p>
           </section>
         </div>
         <p class="footer-note">KDA — KRAZY DART APP</p>
+      </section>
+
+      <section id="result-screen" class="screen result-screen" hidden>
+        <button id="new-game-button" class="back-button" type="button">← Nouvelle partie</button>
+        <div class="result-card">
+          <p id="result-eyebrow" class="eyebrow"></p>
+          <h1 id="result-title"></h1>
+          <div class="table-wrap">
+            <table class="result-table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Joueur</th>
+                  <th scope="col">Volées</th>
+                  <th scope="col">Moy./volée</th>
+                  <th scope="col">Meilleure</th>
+                  <th scope="col">Annulées</th>
+                </tr>
+              </thead>
+              <tbody id="result-rows"></tbody>
+            </table>
+          </div>
+          <div class="curve-box">
+            <p class="eyebrow">SCORE RESTANT PAR TOUR</p>
+            <canvas id="score-curve" width="640" height="300" role="img" aria-label="Évolution du score restant de chaque joueur par tour"></canvas>
+          </div>
+          <button id="replay-button" class="primary-button start-button" type="button">Rejouer avec les mêmes joueurs <span aria-hidden="true">↻</span></button>
+          <div class="result-actions">
+            <button id="share-button" class="secondary-button" type="button">Partager le résultat ↗</button>
+            <button id="result-undo-button" class="secondary-button" type="button">↶ Annuler le dernier lancer</button>
+          </div>
+          <p id="result-message" class="game-message" role="status" aria-live="polite"></p>
+        </div>
       </section>
     </main>
   </body>

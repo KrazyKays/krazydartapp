@@ -1,5 +1,6 @@
 const setupScreen = typeof document !== "undefined" ? document.querySelector("#setup-screen") : null;
 const gameScreen = typeof document !== "undefined" ? document.querySelector("#game-screen") : null;
+const resultScreen = typeof document !== "undefined" ? document.querySelector("#result-screen") : null;
 const setupForm = typeof document !== "undefined" ? document.querySelector("#setup-form") : null;
 const modeSelect = typeof document !== "undefined" ? document.querySelector("#game-mode") : null;
 const playerList = typeof document !== "undefined" ? document.querySelector("#player-list") : null;
@@ -11,6 +12,8 @@ const history = [];
 let game = null;
 let nextPlayerId = 1;
 let selectedMultiplier = 1;
+
+const CURVE_COLORS = ["#55d6ff", "#ff966d", "#b99cff", "#9be37a", "#ffd166", "#ff7aa2", "#7fb3ff", "#e6f28b"];
 
 function createDartButtons() {
   const buttons = Array.from({ length: 21 }, (_, target) => {
@@ -45,7 +48,6 @@ function setMultiplier(multiplier) {
     const isSelected = Number(button.dataset.multiplier) === multiplier;
     button.classList.toggle("active", isSelected);
     button.setAttribute("aria-pressed", String(isSelected));
-    button.disabled = Boolean(game?.winner);
   }
 }
 
@@ -118,11 +120,11 @@ function createGame(mode, names, rules) {
       score,
       opened: !rules.doubleIn,
       lastVisit: null,
+      visits: [],
       stats: {
         darts: 0,
         misses: 0,
         hits: 0,
-        hitPoints: 0,
         doubles: 0,
         busts: 0,
         overshoots: 0,
@@ -173,6 +175,7 @@ function recordVisit(player, points, busted = false) {
     darts: [...game.visitDarts],
     busted,
   };
+  player.visits.push({ round: game.round, points, score: player.score, busted });
   player.stats.bestVisit = Math.max(player.stats.bestVisit, points);
   if (points >= 100) player.stats.centuryVisits += 1;
 }
@@ -219,7 +222,6 @@ function registerDart(target) {
     player.stats.misses += 1;
   } else {
     player.stats.hits += 1;
-    player.stats.hitPoints += points;
     if (isDouble) player.stats.doubles += 1;
   }
 
@@ -306,11 +308,11 @@ function renderScoreboard() {
   for (let index = 0; index < game.players.length; index += 1) {
     const player = game.players[index];
     const card = document.createElement("div");
-    card.className = `player-score-card${index === game.currentPlayer && !game.winner ? " active" : ""}`;
+    card.className = `player-score-card${index === game.currentPlayer ? " active" : ""}`;
     const details = document.createElement("div");
     const name = document.createElement("div");
     name.className = "score-player-name";
-    if (index === game.currentPlayer && !game.winner) {
+    if (index === game.currentPlayer) {
       const dot = document.createElement("span");
       dot.className = "online-dot";
       name.append(dot);
@@ -381,7 +383,7 @@ function renderCompactScoreboard() {
   scoreboard.replaceChildren();
 
   game.players.forEach((player, index) => {
-    if (index === game.currentPlayer && !game.winner) return;
+    if (index === game.currentPlayer) return;
 
     const card = document.createElement("div");
     card.className = "compact-player-card";
@@ -411,102 +413,185 @@ function renderCompactScoreboard() {
   });
 }
 
+function modeLabel() {
+  const rules = [game.doubleIn ? "DOUBLE IN" : "", game.doubleOut ? "DOUBLE OUT" : ""]
+    .filter(Boolean)
+    .join(" · ") || "CLASSIQUE";
+  return `${game.mode} · ${rules}`;
+}
+
+function pluralVolees(count) {
+  return `${count} volée${count > 1 ? "s" : ""}`;
+}
+
+function averagePerVisit(player) {
+  if (player.visits.length === 0) return null;
+  const total = player.visits.reduce((sum, visit) => sum + visit.points, 0);
+  return total / player.visits.length;
+}
+
+function formatAverage(value) {
+  return value === null ? "—" : value.toFixed(1).replace(".", ",");
+}
+
+function buildResultRows(game) {
+  return [...game.players]
+    .sort((a, b) => a.score - b.score)
+    .map((player, index) => ({
+      rank: index + 1,
+      name: player.name,
+      color: CURVE_COLORS[game.players.indexOf(player) % CURVE_COLORS.length],
+      visits: player.visits.length,
+      average: averagePerVisit(player),
+      best: player.stats.bestVisit,
+      busts: player.stats.busts,
+    }));
+}
+
+function drawScoreCurve(context, box, game) {
+  const start = Number(game.mode);
+  const lastRound = Math.max(game.round, 1);
+  const left = box.x + 56;
+  const top = box.y + 16;
+  const width = box.width - 72;
+  const height = box.height - 50;
+  const xFor = (round) => left + (round / lastRound) * width;
+  const yFor = (score) => top + (1 - score / start) * height;
+
+  context.font = "500 20px Segoe UI, sans-serif";
+  context.textBaseline = "middle";
+  context.textAlign = "right";
+  context.fillStyle = "#71869a";
+  context.strokeStyle = "rgba(255, 255, 255, 0.1)";
+  context.lineWidth = 1;
+  for (const score of [0, Math.round(start / 2), start]) {
+    context.beginPath();
+    context.moveTo(left, yFor(score));
+    context.lineTo(left + width, yFor(score));
+    context.stroke();
+    context.fillText(String(score), left - 10, yFor(score));
+  }
+
+  context.textBaseline = "top";
+  context.textAlign = "left";
+  context.fillText("Départ", left, top + height + 12);
+  context.textAlign = "right";
+  context.fillText(`Tour ${lastRound}`, left + width, top + height + 12);
+
+  game.players.forEach((player, index) => {
+    const color = CURVE_COLORS[index % CURVE_COLORS.length];
+    let previousY = yFor(start);
+    context.strokeStyle = color;
+    context.lineWidth = 3;
+    context.lineJoin = "round";
+    context.beginPath();
+    context.moveTo(xFor(0), previousY);
+    for (const visit of player.visits) {
+      const x = xFor(visit.round);
+      context.lineTo(x, previousY);
+      previousY = yFor(visit.score);
+      context.lineTo(x, previousY);
+    }
+    context.lineTo(xFor(lastRound), previousY);
+    context.stroke();
+    context.fillStyle = color;
+    context.beginPath();
+    context.arc(xFor(lastRound), previousY, 6, 0, Math.PI * 2);
+    context.fill();
+  });
+}
+
 function createResultImage() {
   const canvas = document.createElement("canvas");
-  canvas.width = 1200;
-  canvas.height = 900;
+  canvas.width = 1080;
+  canvas.height = 1350;
   const context = canvas.getContext("2d");
   if (!context) throw new Error("Impossible de créer l’image du résultat.");
 
   const winner = game.players.find((player) => player.id === game.winner);
-  const modeLabel = `${game.mode} · ${[
-    game.doubleIn ? "DOUBLE IN" : "",
-    game.doubleOut ? "DOUBLE OUT" : "",
-  ].filter(Boolean).join(" · ") || "CLASSIQUE"}`;
-  const gradient = context.createLinearGradient(0, 0, 1200, 900);
+  const gradient = context.createLinearGradient(0, 0, canvas.width, canvas.height);
   gradient.addColorStop(0, "#0b1018");
   gradient.addColorStop(1, "#14283a");
   context.fillStyle = gradient;
   context.fillRect(0, 0, canvas.width, canvas.height);
 
-  context.fillStyle = "#55d6ff";
-  context.beginPath();
-  context.arc(1080, 95, 190, 0, Math.PI * 2);
-  context.fill();
-  context.globalAlpha = 0.12;
-  context.fillStyle = "#0b1018";
-  context.beginPath();
-  context.arc(1080, 95, 142, 0, Math.PI * 2);
-  context.fill();
-  context.globalAlpha = 1;
-
-  context.fillStyle = "#55d6ff";
-  context.font = "800 24px Segoe UI, sans-serif";
   context.textAlign = "left";
-  context.fillText("KDA  /  KRAZY DART APP", 72, 78);
-
-  context.textAlign = "center";
-  context.fillStyle = "#95a9bb";
-  context.font = "500 18px Segoe UI, sans-serif";
-  context.fillText(modeLabel, 600, 151);
-  context.fillStyle = "#eff7ff";
-  context.font = "800 54px Segoe UI, sans-serif";
-  context.fillText(winner.name, 600, 225, 1000);
   context.fillStyle = "#55d6ff";
-  context.font = "700 25px Segoe UI, sans-serif";
-  context.fillText("REMPORTE LA PARTIE", 600, 270);
+  context.font = "800 26px Segoe UI, sans-serif";
+  context.fillText("KDA  /  KRAZY DART APP", 72, 88);
+  context.fillStyle = "#95a9bb";
+  context.font = "500 22px Segoe UI, sans-serif";
+  context.fillText(modeLabel(), 72, 136);
+  context.fillStyle = "#eff7ff";
+  context.font = "800 64px Segoe UI, sans-serif";
+  context.fillText(winner.name, 72, 230, 936);
+  context.fillStyle = "#55d6ff";
+  context.font = "700 32px Segoe UI, sans-serif";
+  context.fillText(`gagne en ${pluralVolees(winner.visits.length)}`, 72, 288);
 
-  const columns = game.players.length > 4 ? 2 : 1;
-  const rowsPerColumn = Math.ceil(game.players.length / columns);
-  const rowHeight = Math.min(110, 400 / rowsPerColumn);
-  const gridTop = 354;
-  const columnWidth = columns === 1 ? 760 : 480;
-  const gridLeft = (1200 - columns * columnWidth - (columns - 1) * 24) / 2;
+  const headers = [
+    ["#", 72, "left"],
+    ["Joueur", 146, "left"],
+    ["Volées", 610, "center"],
+    ["Moy./volée", 730, "center"],
+    ["Meilleure", 850, "center"],
+    ["Annulées", 990, "center"],
+  ];
+  context.font = "600 20px Segoe UI, sans-serif";
+  context.fillStyle = "#71869a";
+  for (const [label, x, align] of headers) {
+    context.textAlign = align;
+    context.fillText(label, x, 352);
+  }
 
-  game.players.forEach((player, index) => {
-    const column = Math.floor(index / rowsPerColumn);
-    const row = index % rowsPerColumn;
-    const x = gridLeft + column * (columnWidth + 24);
-    const y = gridTop + row * (rowHeight + 10);
-    const isWinner = player.id === game.winner;
-    context.fillStyle = isWinner ? "rgba(85, 214, 255, 0.14)" : "rgba(255, 255, 255, 0.06)";
+  const rowTop = 376;
+  const rowHeight = 64;
+  const rows = buildResultRows(game);
+  rows.forEach((row, index) => {
+    const y = rowTop + index * rowHeight;
+    if (row.rank === 1) {
+      context.fillStyle = "rgba(85, 214, 255, 0.14)";
+      context.beginPath();
+      context.roundRect(72, y, 936, rowHeight - 8, 10);
+      context.fill();
+    }
+    context.fillStyle = row.color;
     context.beginPath();
-    context.roundRect(x, y, columnWidth, rowHeight, 10);
+    context.arc(124, y + (rowHeight - 8) / 2, 7, 0, Math.PI * 2);
     context.fill();
 
-    context.textAlign = "left";
-    context.fillStyle = isWinner ? "#55d6ff" : "#eff7ff";
-    context.font = "600 18px Segoe UI, sans-serif";
-    context.fillText(player.name, x + 18, y + 27, columnWidth - 135);
-    context.textAlign = "right";
+    const values = [
+      String(row.rank),
+      row.name,
+      String(row.visits),
+      formatAverage(row.average),
+      String(row.best),
+      String(row.busts),
+    ];
+    context.font = "600 22px Segoe UI, sans-serif";
     context.fillStyle = "#eff7ff";
-    context.font = "700 21px Segoe UI, sans-serif";
-    context.fillText(String(player.score), x + columnWidth - 18, y + 28);
-
-    const stats = player.stats;
-    const average = stats.hits ? (stats.hitPoints / stats.hits).toFixed(1) : "—";
-    const firstLine = `Lancers ${stats.darts} · Ratés ${stats.misses} · Dépassements ${stats.overshoots} · Busts ${stats.busts}`;
-    const secondLine = `Moy. par touche ${average} · Meilleure volée ${stats.bestVisit} · Volées 100+ ${stats.centuryVisits} · Doubles ${stats.doubles}`;
-
-    context.textAlign = "left";
-    context.fillStyle = "#adc0d1";
-    context.font = columns === 1 ? "14px Segoe UI, sans-serif" : "12px Segoe UI, sans-serif";
-    context.fillText(firstLine, x + 18, y + 52, columnWidth - 36);
-    context.fillText(secondLine, x + 18, y + 74, columnWidth - 36);
-    if (stats.checkouts) {
-      context.fillText(
-        `Checkout : ${stats.checkoutDarts} fléchette${stats.checkoutDarts > 1 ? "s" : ""} · ${stats.checkoutScore} points`,
-        x + 18,
-        y + 94,
-        columnWidth - 36,
-      );
-    }
+    headers.forEach(([, x, align], column) => {
+      context.textAlign = align;
+      context.fillText(values[column], x, y + 36, column === 1 ? 360 : 200);
+    });
   });
+
+  const curveTop = rowTop + rows.length * rowHeight + 24;
+  const curveBox = { x: 72, y: curveTop, width: 936, height: 1250 - curveTop };
+  context.fillStyle = "rgba(255, 255, 255, 0.04)";
+  context.beginPath();
+  context.roundRect(curveBox.x, curveBox.y, curveBox.width, curveBox.height, 12);
+  context.fill();
+  drawScoreCurve(
+    context,
+    { x: curveBox.x + 24, y: curveBox.y + 24, width: curveBox.width - 48, height: curveBox.height - 48 },
+    game,
+  );
 
   context.textAlign = "center";
   context.fillStyle = "#71869a";
-  context.font = "500 14px Segoe UI, sans-serif";
-  context.fillText("KRAZY DART APP  ·  BON JEU !", 600, 872);
+  context.font = "500 18px Segoe UI, sans-serif";
+  context.fillText("KRAZY DART APP  ·  BON JEU !", 540, 1310);
   return canvas;
 }
 
@@ -521,7 +606,7 @@ function canvasToBlob(canvas) {
 
 async function shareResult() {
   const button = document.querySelector("#share-button");
-  const message = document.querySelector("#game-message");
+  const message = document.querySelector("#result-message");
   button.disabled = true;
   message.classList.remove("warning");
   message.textContent = "Préparation de l’image…";
@@ -557,31 +642,65 @@ async function shareResult() {
   }
 }
 
+function renderResult() {
+  const winner = game.players.find((player) => player.id === game.winner);
+  document.querySelector("#result-eyebrow").textContent = `PARTIE TERMINÉE · ${modeLabel()}`;
+  document.querySelector("#result-title").textContent = `${winner.name} gagne en ${pluralVolees(winner.visits.length)}`;
+  document.querySelector("#result-rows").replaceChildren(...buildResultRows(game).map(resultRowElement));
+
+  const canvas = document.querySelector("#score-curve");
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  drawScoreCurve(context, { x: 0, y: 0, width: canvas.width, height: canvas.height }, game);
+}
+
+function resultRowElement(row) {
+  const tr = document.createElement("tr");
+  if (row.rank === 1) tr.className = "is-winner";
+  const name = document.createElement("td");
+  const swatch = document.createElement("span");
+  swatch.className = "swatch";
+  swatch.style.background = row.color;
+  name.append(swatch, row.name);
+  tr.append(
+    resultCell(String(row.rank)),
+    name,
+    resultCell(String(row.visits)),
+    resultCell(formatAverage(row.average)),
+    resultCell(String(row.best)),
+    resultCell(String(row.busts)),
+  );
+  return tr;
+}
+
+function resultCell(text) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  return td;
+}
+
 function renderGame() {
   if (!game || typeof document === "undefined") return;
+  const isOver = Boolean(game.winner);
+  gameScreen.hidden = isOver;
+  resultScreen.hidden = !isOver;
+  if (isOver) {
+    renderResult();
+    return;
+  }
+
   const current = activePlayer();
   document.querySelector("#game-mode-label").textContent = `MODE ${game.mode}`;
   document.querySelector("#game-title").textContent = game.mode;
-  document.querySelector("#turn-label").textContent = game.winner ? "Partie terminée" : `Au tour de ${current.name}`;
+  document.querySelector("#turn-label").textContent = `Au tour de ${current.name}`;
   document.querySelector("#round-label").textContent = `TOUR ${game.round}`;
-  document.querySelector("#active-player-name").textContent = game.winner
-    ? `${game.players.find((player) => player.id === game.winner).name} a gagné`
-    : current.name;
-  document.querySelector("#darts-left").textContent = game.winner ? "TERMINÉ" : `${3 - game.dartsInVisit} FLÉCHETTE${3 - game.dartsInVisit > 1 ? "S" : ""}`;
+  document.querySelector("#active-player-name").textContent = current.name;
+  document.querySelector("#darts-left").textContent = `${3 - game.dartsInVisit} FLÉCHETTE${3 - game.dartsInVisit > 1 ? "S" : ""}`;
   document.querySelector("#game-message").textContent = game.message;
   document.querySelector("#game-message").classList.toggle("warning", game.messageType === "warning");
   setMultiplier(selectedMultiplier);
-  for (const button of dartButtons.querySelectorAll("[data-target]")) {
-    button.disabled = Boolean(game.winner);
-  }
   document.querySelector("#undo-button").disabled = history.length === 0;
-  document.querySelector("#end-turn-button").disabled = Boolean(game.winner || game.dartsInVisit === 0);
-
-  const winnerBanner = document.querySelector("#winner-banner");
-  winnerBanner.hidden = !game.winner;
-  if (game.winner) winnerBanner.textContent = `🏆 ${game.players.find((player) => player.id === game.winner).name} remporte la partie !`;
-  document.querySelector("#share-button").hidden = !game.winner;
-  document.querySelector("#share-help").hidden = !game.winner;
+  document.querySelector("#end-turn-button").disabled = game.dartsInVisit === 0;
 
   const logList = document.querySelector("#log-list");
   logList.replaceChildren();
@@ -605,6 +724,29 @@ function renderGame() {
   renderScoreboard();
   renderActiveTurnSummary();
   renderCompactScoreboard();
+}
+
+function showSetup() {
+  game = null;
+  history.length = 0;
+  setupScreen.hidden = false;
+  gameScreen.hidden = true;
+  resultScreen.hidden = true;
+}
+
+function replay() {
+  const names = game.players.map((player) => player.name);
+  history.length = 0;
+  game = createGame(game.mode, names, { doubleIn: game.doubleIn, doubleOut: game.doubleOut });
+  setMultiplier(1);
+  renderGame();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function undoMove() {
+  if (history.length === 0) return;
+  game = history.pop();
+  renderGame();
 }
 
 function startGame(event) {
@@ -639,17 +781,11 @@ if (typeof document !== "undefined") {
     if (button && !button.disabled) registerDart(button.dataset.target);
   });
   document.querySelector("#end-turn-button").addEventListener("click", finishVisit);
-  document.querySelector("#back-button").addEventListener("click", () => {
-    game = null;
-    history.length = 0;
-    setupScreen.hidden = false;
-    gameScreen.hidden = true;
-  });
-  document.querySelector("#undo-button").addEventListener("click", () => {
-    if (history.length === 0) return;
-    game = history.pop();
-    renderGame();
-  });
+  document.querySelector("#back-button").addEventListener("click", showSetup);
+  document.querySelector("#new-game-button").addEventListener("click", showSetup);
+  document.querySelector("#undo-button").addEventListener("click", undoMove);
+  document.querySelector("#result-undo-button").addEventListener("click", undoMove);
+  document.querySelector("#replay-button").addEventListener("click", replay);
   document.querySelector("#share-button").addEventListener("click", shareResult);
   setupForm.addEventListener("submit", startGame);
 
@@ -663,6 +799,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     createGame,
     cloneGame,
+    buildResultRows,
     registerDart,
     finishVisit,
     setMultiplier,
@@ -674,10 +811,6 @@ if (typeof module !== "undefined" && module.exports) {
     clearHistory: () => {
       history.length = 0;
     },
-    undo: () => {
-      if (history.length === 0) return;
-      game = history.pop();
-      renderGame();
-    },
+    undo: undoMove,
   };
 }

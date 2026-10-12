@@ -9,6 +9,7 @@ const {
   getGame,
   clearHistory,
   undo,
+  buildResultRows,
 } = require("./app.js");
 
 function setupTestGame(options = {}) {
@@ -307,3 +308,52 @@ test("Double In activé : un joueur non-ouvert ne peut pas décrémenter son sco
   assert.equal(player.score, 0);
   assert.equal(game.winner, player.id, "Alice remporte la partie");
 });
+
+test("Chaque volée est enregistrée avec son tour, ses points et le score restant", () => {
+  const game = setupTestGame({ initialScore: 301, doubleOut: false });
+
+  setMultiplier(1);
+  registerDart("20");
+  registerDart("20");
+  registerDart("20");
+
+  assert.deepEqual(game.players[0].visits, [{ round: 1, points: 60, score: 241, busted: false }]);
+});
+
+test("Une volée annulée est enregistrée sans points et avec le score d'avant la volée", () => {
+  const game = setupTestGame({ initialScore: 20, doubleOut: true });
+
+  setMultiplier(1);
+  registerDart("19");
+
+  assert.deepEqual(game.players[0].visits, [{ round: 1, points: 0, score: 20, busted: true }]);
+});
+
+test("La moyenne par volée compte toutes les volées, annulées incluses", () => {
+  const game = setupTestGame({ players: ["Alice"], initialScore: 301, doubleOut: false });
+
+  setMultiplier(1);
+  registerDart("20");
+  registerDart("20");
+  registerDart("20");
+  registerDart("1");
+  finishVisit();
+
+  const [row] = buildResultRows(game);
+  assert.equal(row.visits, 2);
+  assert.equal(row.average, 30.5);
+});
+
+test("Le classement place le gagnant en tête, puis par score restant croissant", () => {
+  const game = setupTestGame({ players: ["Alice", "Bob", "Charlie"], initialScore: 301 });
+  game.players[0].score = 0;
+  game.players[1].score = 120;
+  game.players[2].score = 45;
+  game.winner = game.players[0].id;
+
+  const rows = buildResultRows(game);
+  assert.deepEqual(rows.map((row) => row.name), ["Alice", "Charlie", "Bob"]);
+  assert.deepEqual(rows.map((row) => row.rank), [1, 2, 3]);
+  assert.equal(rows[2].average, null, "Un joueur sans volée n'a pas de moyenne");
+});
+

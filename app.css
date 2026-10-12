@@ -225,17 +225,30 @@ h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.8px; }
 .dart-button.miss-button { color: var(--muted); }
 .dart-button.bull-button { grid-column: span 2; color: var(--cyan); font-family: "Manrope", "Segoe UI", sans-serif; font-size: 11px; font-weight: 700; }
 .dart-button:disabled { cursor: not-allowed; opacity: .4; }
-.share-button { width: 100%; display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
-.share-button span { font-size: 18px; }
-.share-help { margin-top: 8px; }
 .throw-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
 .secondary-button { min-height: 40px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: #bdc7b8; font-size: 10px; }
 .secondary-button:hover:not(:disabled) { border-color: #7d8b78; color: var(--text); }
 .secondary-button:disabled { cursor: not-allowed; opacity: .4; }
 .game-message { min-height: 17px; margin: 12px 0 0; color: var(--cyan); font-size: 10px; line-height: 1.5; }
 .game-message.warning { color: var(--orange); }
-.winner-banner { margin-top: 12px; padding: 14px; border: 1px solid rgb(85 214 255 / 35%); border-radius: 8px; background: rgb(85 214 255 / 9%); color: var(--cyan); font-size: 13px; font-weight: 800; text-align: center; }
 .footer-note { margin: 27px 0 0; color: #71869a; font-size: 9px; letter-spacing: 1.2px; text-align: center; }
+
+.result-screen { width: min(640px, calc(100% - 40px)); padding: 42px 0 30px; }
+.result-card { padding: clamp(18px, 4vw, 30px); border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.result-card h1 { margin: 0 0 22px; font-size: clamp(28px, 6vw, 40px); letter-spacing: -1.5px; }
+.table-wrap { overflow-x: auto; }
+.result-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.result-table th { color: var(--muted); font-family: "DM Mono", Consolas, monospace; font-size: 9px; font-weight: 400; letter-spacing: .5px; }
+.result-table th, .result-table td { padding: 11px 6px; border-bottom: 1px solid var(--border); text-align: center; }
+.result-table th:nth-child(-n+2), .result-table td:nth-child(-n+2) { text-align: left; }
+.result-table td:nth-child(n+3) { font-family: "DM Mono", Consolas, monospace; }
+.result-table tr.is-winner td { color: var(--cyan); }
+.swatch { display: inline-block; width: 9px; height: 9px; margin-right: 8px; border-radius: 50%; vertical-align: middle; }
+.curve-box { margin: 22px 0; padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: #0d1620; }
+.curve-box .eyebrow { margin-bottom: 10px; color: var(--muted); font-size: 9px; }
+#score-curve { display: block; width: 100%; height: auto; }
+.result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
+
 
 @media (max-width: 720px) {
   .topbar { height: 64px; padding: 0 20px; }
