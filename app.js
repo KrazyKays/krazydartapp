@@ -220,6 +220,7 @@ function registerDart(target) {
   const isBull = sector === 25 || sector === 50;
   const points = isBull ? sector : sector * selectedMultiplier;
   const isDouble = sector === 50 || (selectedMultiplier === 2 && sector !== 0 && !isBull);
+  selectedMultiplier = 1;
   remember();
   const player = activePlayer();
   const wasOpen = player.opened;
@@ -456,23 +457,56 @@ function formatAverage(value) {
   return value === null ? "—" : value.toFixed(1).replace(".", ",");
 }
 
+function rankedPlayers(state) {
+  return [...state.players].sort((a, b) => {
+    if (a.finishedPosition === null && b.finishedPosition === null) return a.score - b.score;
+    if (a.finishedPosition === null) return 1;
+    if (b.finishedPosition === null) return -1;
+    return a.finishedPosition - b.finishedPosition;
+  });
+}
+
 function buildResultRows(game) {
-  return [...game.players]
-    .sort((a, b) => {
-      if (a.finishedPosition === null && b.finishedPosition === null) return a.score - b.score;
-      if (a.finishedPosition === null) return 1;
-      if (b.finishedPosition === null) return -1;
-      return a.finishedPosition - b.finishedPosition;
-    })
-    .map((player, index) => ({
-      rank: index + 1,
-      name: player.name,
-      color: CURVE_COLORS[game.players.indexOf(player) % CURVE_COLORS.length],
-      visits: player.visits.length,
-      average: averagePerVisit(player),
-      best: player.stats.bestVisit,
-      busts: player.stats.busts,
-    }));
+  return rankedPlayers(game).map((player, index) => ({
+    rank: index + 1,
+    name: player.name,
+    color: CURVE_COLORS[game.players.indexOf(player) % CURVE_COLORS.length],
+    visits: player.visits.length,
+    average: averagePerVisit(player),
+    best: player.stats.bestVisit,
+    busts: player.stats.busts,
+  }));
+}
+
+function strokeCancelledMarker(context, x, y) {
+  const size = 6;
+  for (const [style, width] of [["#0d1620", 6], ["#ff4d5e", 2.5]]) {
+    context.strokeStyle = style;
+    context.lineWidth = width;
+    context.beginPath();
+    context.moveTo(x - size, y - size);
+    context.lineTo(x + size, y + size);
+    context.moveTo(x + size, y - size);
+    context.lineTo(x - size, y + size);
+    context.stroke();
+  }
+}
+
+function drawFinishMarker(context, x, y, color, label, rightEdge) {
+  context.beginPath();
+  context.arc(x, y, 8, 0, Math.PI * 2);
+  context.fillStyle = "#0d1620";
+  context.fill();
+  context.lineWidth = 3;
+  context.strokeStyle = color;
+  context.stroke();
+
+  const alignRight = x > rightEdge - 40;
+  context.font = "700 20px Segoe UI, sans-serif";
+  context.textAlign = alignRight ? "right" : "left";
+  context.textBaseline = "middle";
+  context.fillStyle = color;
+  context.fillText(label, x + (alignRight ? -14 : 14), y - 14);
 }
 
 function drawScoreCurve(context, box, game) {
@@ -505,8 +539,9 @@ function drawScoreCurve(context, box, game) {
   context.textAlign = "right";
   context.fillText(`Tour ${lastRound}`, left + width, top + height + 12);
 
-  game.players.forEach((player, index) => {
-    const color = CURVE_COLORS[index % CURVE_COLORS.length];
+  for (const player of rankedPlayers(game).reverse()) {
+    const color = CURVE_COLORS[game.players.indexOf(player) % CURVE_COLORS.length];
+    const isFinished = player.finishedPosition !== null;
     let previousY = yFor(start);
     context.strokeStyle = color;
     context.lineWidth = 3;
@@ -519,13 +554,23 @@ function drawScoreCurve(context, box, game) {
       previousY = yFor(visit.score);
       context.lineTo(x, previousY);
     }
-    context.lineTo(xFor(lastRound), previousY);
+    if (!isFinished) context.lineTo(xFor(lastRound), previousY);
     context.stroke();
-    context.fillStyle = color;
-    context.beginPath();
-    context.arc(xFor(lastRound), previousY, 6, 0, Math.PI * 2);
-    context.fill();
-  });
+
+    for (const visit of player.visits) {
+      if (visit.busted) strokeCancelledMarker(context, xFor(visit.round), yFor(visit.score));
+    }
+
+    if (isFinished) {
+      const finishRound = player.visits.at(-1).round;
+      drawFinishMarker(context, xFor(finishRound), yFor(0), color, placeLabel(player.finishedPosition), left + width);
+    } else {
+      context.fillStyle = color;
+      context.beginPath();
+      context.arc(xFor(lastRound), previousY, 6, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
 }
 
 function createResultImage() {

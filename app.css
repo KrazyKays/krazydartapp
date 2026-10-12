@@ -247,6 +247,7 @@ h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.8px; }
 .curve-box { margin: 22px 0; padding: 16px; border: 1px solid var(--border); border-radius: 9px; background: #0d1620; }
 .curve-box .eyebrow { margin-bottom: 10px; color: var(--muted); font-size: 9px; }
 #score-curve { display: block; width: 100%; height: auto; }
+.curve-legend { margin: 10px 0 0; color: var(--muted); font-size: 10px; }
 .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 9px; }
 
 

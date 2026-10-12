@@ -329,6 +329,25 @@ test("Une volée annulée est enregistrée sans points et avec le score d'avant 
   assert.deepEqual(game.players[0].visits, [{ round: 1, points: 0, score: 20, busted: true }]);
 });
 
+test("Le multiplicateur revient sur Simple après un double ou un triple", () => {
+  const game = setupTestGame({ players: ["Alice"], initialScore: 301, doubleOut: false });
+  const player = game.players[0];
+
+  setMultiplier(2);
+  registerDart("10");
+  assert.equal(player.score, 281, "Double 10 compte 20 points");
+
+  registerDart("10");
+  assert.equal(player.score, 271, "La fléchette suivante est un simple");
+
+  setMultiplier(3);
+  registerDart("10");
+  assert.equal(player.score, 241, "Triple 10 compte 30 points");
+
+  registerDart("10");
+  assert.equal(player.score, 231, "Après un triple, la fléchette suivante est un simple");
+});
+
 test("La moyenne par volée compte toutes les volées, annulées incluses", () => {
   const game = setupTestGame({ players: ["Alice"], initialScore: 301, doubleOut: false });
 
