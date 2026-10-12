@@ -344,9 +344,10 @@ test("La moyenne par volée compte toutes les volées, annulées incluses", () =
   assert.equal(row.average, 30.5);
 });
 
-test("Le classement place le gagnant en tête, puis par score restant croissant", () => {
+test("Le classement suit l'ordre d'arrivée des joueurs terminés, puis le score restant croissant", () => {
   const game = setupTestGame({ players: ["Alice", "Bob", "Charlie"], initialScore: 301 });
   game.players[0].score = 0;
+  game.players[0].finishedPosition = 1;
   game.players[1].score = 120;
   game.players[2].score = 45;
   game.winner = game.players[0].id;
@@ -355,5 +356,28 @@ test("Le classement place le gagnant en tête, puis par score restant croissant"
   assert.deepEqual(rows.map((row) => row.name), ["Alice", "Charlie", "Bob"]);
   assert.deepEqual(rows.map((row) => row.rank), [1, 2, 3]);
   assert.equal(rows[2].average, null, "Un joueur sans volée n'a pas de moyenne");
+});
+
+test("Après une victoire, la partie continue avec les autres joueurs", () => {
+  const game = setupTestGame({ players: ["Alice", "Bob", "Charlie"], initialScore: 20, doubleOut: true });
+
+  setMultiplier(2);
+  registerDart("10");
+  assert.equal(game.winner, game.players[0].id, "Alice est la première à finir");
+  assert.equal(game.players[0].finishedPosition, 1);
+  assert.equal(game.currentPlayer, 1, "Bob joue après la victoire d'Alice");
+
+  setMultiplier(2);
+  registerDart("10");
+  assert.equal(game.players[1].finishedPosition, 2);
+  assert.equal(game.currentPlayer, 2, "Charlie joue encore");
+
+  setMultiplier(2);
+  registerDart("10");
+  assert.equal(game.players[2].finishedPosition, 3);
+  assert.deepEqual(buildResultRows(game).map((row) => row.name), ["Alice", "Bob", "Charlie"]);
+
+  registerDart("1");
+  assert.equal(game.players[2].stats.darts, 1, "Plus aucun lancer n'est enregistré une fois la partie terminée");
 });
 

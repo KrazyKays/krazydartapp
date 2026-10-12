@@ -125,6 +125,7 @@
             <div class="throw-actions">
               <button id="undo-button" class="secondary-button" type="button">↶ Annuler le lancer</button>
               <button id="end-turn-button" class="secondary-button" type="button">Terminer la volée</button>
+              <button id="show-result-button" class="secondary-button" type="button">Voir le résultat</button>
             </div>
             <p id="game-message" class="game-message" role="status" aria-live="polite"></p>
           </section>
@@ -157,6 +158,7 @@
             <canvas id="score-curve" width="640" height="300" role="img" aria-label="Évolution du score restant de chaque joueur par tour"></canvas>
           </div>
           <button id="replay-button" class="primary-button start-button" type="button">Rejouer avec les mêmes joueurs <span aria-hidden="true">↻</span></button>
+          <button id="resume-game-button" class="primary-button start-button" type="button" hidden>Reprendre la partie <span aria-hidden="true">→</span></button>
           <div class="result-actions">
             <button id="share-button" class="secondary-button" type="button">Partager le résultat ↗</button>
             <button id="result-undo-button" class="secondary-button" type="button">↶ Annuler le dernier lancer</button>

@@ -12,6 +12,7 @@ const history = [];
 let game = null;
 let nextPlayerId = 1;
 let selectedMultiplier = 1;
+let resultViewOpen = false;
 
 const CURVE_COLORS = ["#55d6ff", "#ff966d", "#b99cff", "#9be37a", "#ffd166", "#ff7aa2", "#7fb3ff", "#e6f28b"];
 
@@ -119,6 +120,7 @@ function createGame(mode, names, rules) {
       name,
       score,
       opened: !rules.doubleIn,
+      finishedPosition: null,
       lastVisit: null,
       visits: [],
       stats: {
@@ -169,6 +171,23 @@ function activePlayer() {
   return game.players[game.currentPlayer];
 }
 
+function isGameOver(state) {
+  return state.players.every((player) => player.finishedPosition !== null);
+}
+
+function nextActiveIndex(state) {
+  const count = state.players.length;
+  for (let step = 1; step <= count; step += 1) {
+    const index = (state.currentPlayer + step) % count;
+    if (state.players[index].finishedPosition === null) return index;
+  }
+  return state.currentPlayer;
+}
+
+function placeLabel(position) {
+  return position === 1 ? "1re" : `${position}e`;
+}
+
 function recordVisit(player, points, busted = false) {
   player.lastVisit = {
     score: points,
@@ -186,16 +205,17 @@ function endVisit(message = "", messageType = "") {
   game.visitStartOpen = null;
   game.visitScore = 0;
   game.visitDarts = [];
-  if (!game.winner) {
-    game.currentPlayer = (game.currentPlayer + 1) % game.players.length;
-    if (game.currentPlayer === 0) game.round += 1;
+  if (!isGameOver(game)) {
+    const next = nextActiveIndex(game);
+    if (next <= game.currentPlayer) game.round += 1;
+    game.currentPlayer = next;
   }
   game.message = message;
   game.messageType = messageType;
 }
 
 function registerDart(target) {
-  if (!game || game.winner) return;
+  if (!game || isGameOver(game)) return;
   const sector = Number(target);
   const isBull = sector === 25 || sector === 50;
   const points = isBull ? sector : sector * selectedMultiplier;
@@ -266,10 +286,10 @@ function registerDart(target) {
     player.stats.checkoutDarts = game.dartsInVisit;
     player.stats.checkoutScore = game.visitStartScore;
     recordVisit(player, game.visitStartScore);
-    game.winner = player.id;
+    player.finishedPosition = game.players.filter((other) => other.finishedPosition !== null).length + 1;
+    if (!game.winner) game.winner = player.id;
     addLog(`${player.name} termine (${points} pts${isDouble ? ", double" : ""})`, wasScore);
-    game.message = "Partie gagnée !";
-    game.messageType = "";
+    endVisit(`${player.name} termine à la ${placeLabel(player.finishedPosition)} place !`, "");
     renderGame();
     return;
   }
@@ -289,7 +309,7 @@ function registerDart(target) {
 }
 
 function finishVisit() {
-  if (!game || game.winner || game.dartsInVisit === 0) return;
+  if (!game || isGameOver(game) || game.dartsInVisit === 0) return;
   remember();
   const player = activePlayer();
   const points = game.visitStartScore - player.score;
@@ -322,7 +342,9 @@ function renderScoreboard() {
     name.append(label);
     const subtitle = document.createElement("div");
     subtitle.className = "score-sub";
-    subtitle.textContent = player.opened ? "En jeu" : "En attente d’un double";
+    subtitle.textContent = player.finishedPosition !== null
+      ? `Terminé · ${placeLabel(player.finishedPosition)} place`
+      : player.opened ? "En jeu" : "En attente d’un double";
     const lastVisit = document.createElement("div");
     lastVisit.className = "last-visit";
     const lastVisitLabel = document.createElement("span");
@@ -436,7 +458,12 @@ function formatAverage(value) {
 
 function buildResultRows(game) {
   return [...game.players]
-    .sort((a, b) => a.score - b.score)
+    .sort((a, b) => {
+      if (a.finishedPosition === null && b.finishedPosition === null) return a.score - b.score;
+      if (a.finishedPosition === null) return 1;
+      if (b.finishedPosition === null) return -1;
+      return a.finishedPosition - b.finishedPosition;
+    })
     .map((player, index) => ({
       rank: index + 1,
       name: player.name,
@@ -644,8 +671,14 @@ async function shareResult() {
 
 function renderResult() {
   const winner = game.players.find((player) => player.id === game.winner);
-  document.querySelector("#result-eyebrow").textContent = `PARTIE TERMINÉE · ${modeLabel()}`;
-  document.querySelector("#result-title").textContent = `${winner.name} gagne en ${pluralVolees(winner.visits.length)}`;
+  const isOver = isGameOver(game);
+  document.querySelector("#result-eyebrow").textContent = `${isOver ? "PARTIE TERMINÉE" : "PARTIE EN COURS"} · ${modeLabel()}`;
+  document.querySelector("#result-title").textContent = winner
+    ? `${winner.name} gagne en ${pluralVolees(winner.visits.length)}`
+    : "Classement provisoire";
+  document.querySelector("#share-button").hidden = !isOver;
+  document.querySelector("#replay-button").hidden = !isOver;
+  document.querySelector("#resume-game-button").hidden = isOver;
   document.querySelector("#result-rows").replaceChildren(...buildResultRows(game).map(resultRowElement));
 
   const canvas = document.querySelector("#score-curve");
@@ -681,10 +714,10 @@ function resultCell(text) {
 
 function renderGame() {
   if (!game || typeof document === "undefined") return;
-  const isOver = Boolean(game.winner);
-  gameScreen.hidden = isOver;
-  resultScreen.hidden = !isOver;
-  if (isOver) {
+  const showResult = isGameOver(game) || resultViewOpen;
+  gameScreen.hidden = showResult;
+  resultScreen.hidden = !showResult;
+  if (showResult) {
     renderResult();
     return;
   }
@@ -729,6 +762,7 @@ function renderGame() {
 function showSetup() {
   game = null;
   history.length = 0;
+  resultViewOpen = false;
   setupScreen.hidden = false;
   gameScreen.hidden = true;
   resultScreen.hidden = true;
@@ -737,6 +771,7 @@ function showSetup() {
 function replay() {
   const names = game.players.map((player) => player.name);
   history.length = 0;
+  resultViewOpen = false;
   game = createGame(game.mode, names, { doubleIn: game.doubleIn, doubleOut: game.doubleOut });
   setMultiplier(1);
   renderGame();
@@ -746,6 +781,7 @@ function replay() {
 function undoMove() {
   if (history.length === 0) return;
   game = history.pop();
+  resultViewOpen = false;
   renderGame();
 }
 
@@ -756,6 +792,7 @@ function startGame(event) {
   if (names.length < 1 || names.length > 8) return;
 
   history.length = 0;
+  resultViewOpen = false;
   game = createGame(modeSelect.value, names, {
     doubleIn: document.querySelector("#double-in").checked,
     doubleOut: document.querySelector("#double-out").checked,
@@ -781,6 +818,14 @@ if (typeof document !== "undefined") {
     if (button && !button.disabled) registerDart(button.dataset.target);
   });
   document.querySelector("#end-turn-button").addEventListener("click", finishVisit);
+  document.querySelector("#show-result-button").addEventListener("click", () => {
+    resultViewOpen = true;
+    renderGame();
+  });
+  document.querySelector("#resume-game-button").addEventListener("click", () => {
+    resultViewOpen = false;
+    renderGame();
+  });
   document.querySelector("#back-button").addEventListener("click", showSetup);
   document.querySelector("#new-game-button").addEventListener("click", showSetup);
   document.querySelector("#undo-button").addEventListener("click", undoMove);
