@@ -65,17 +65,8 @@ button { cursor: pointer; }
 }
 
 .brand-period { color: var(--cyan); }
-.topbar-note, .eyebrow, .round-label, .player-count, .darts-left, .footer-note {
+.eyebrow, .round-label, .player-count, .darts-left, .footer-note {
   font-family: "DM Mono", Consolas, monospace;
-}
-
-.topbar-note {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  color: var(--muted);
-  font-size: 10px;
-  letter-spacing: 1px;
 }
 
 .online-dot {
@@ -181,7 +172,6 @@ h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.8px; }
 .back-button { margin-bottom: 24px; padding: 0; border: 0; background: none; color: var(--muted); font-size: 11px; }
 .back-button:hover { color: var(--cyan); }
 .game-eyebrow { margin-bottom: 5px; }
-.game-header h1 { margin: 0; font-size: 34px; letter-spacing: -1.5px; }
 .turn-indicator { display: inline-flex; align-items: center; gap: 9px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 30px; color: var(--muted); font-size: 10px; }
 .game-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(300px, .85fr); align-items: start; gap: 18px; }
 .score-panel, .throw-panel { padding: 23px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
@@ -295,7 +285,6 @@ h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.8px; }
   .screen { width: min(100% - 28px, 1080px); }
   .setup-screen { width: calc(100% - 28px); padding-top: 18px; }
   .topbar { padding: 0 14px; }
-  .topbar-note { font-size: 8px; }
   .setup-card { padding: 19px; }
   .score-panel, .throw-panel { padding: 15px; }
   .rule-options { grid-template-columns: 1fr; }

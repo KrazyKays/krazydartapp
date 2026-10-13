@@ -448,11 +448,12 @@ function renderCompactScoreboard() {
   });
 }
 
+function activeRules() {
+  return [game.doubleIn ? "DOUBLE IN" : "", game.doubleOut ? "DOUBLE OUT" : ""].filter(Boolean);
+}
+
 function modeLabel() {
-  const rules = [game.doubleIn ? "DOUBLE IN" : "", game.doubleOut ? "DOUBLE OUT" : ""]
-    .filter(Boolean)
-    .join(" · ") || "CLASSIQUE";
-  return `${game.mode} · ${rules}`;
+  return `${game.mode} · ${activeRules().join(" · ") || "CLASSIQUE"}`;
 }
 
 function pluralVolees(count) {
@@ -780,8 +781,7 @@ function renderGame() {
   }
 
   const current = activePlayer();
-  document.querySelector("#game-mode-label").textContent = `MODE ${game.mode}`;
-  document.querySelector("#game-title").textContent = game.mode;
+  document.querySelector("#game-mode-label").textContent = [`MODE ${game.mode}`, ...activeRules()].join(" · ");
   document.querySelector("#turn-label").textContent = `Au tour de ${current.name}`;
   document.querySelector("#round-label").textContent = `TOUR ${game.round}`;
   document.querySelector("#active-player-name").textContent = current.name;
