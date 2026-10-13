@@ -104,6 +104,7 @@
                 <span class="field-label">Volée en cours</span>
                 <div id="current-visit-darts" class="current-visit-darts"></div>
               </div>
+              <div id="previous-visit" class="previous-visit" hidden></div>
             </section>
 
             <section class="compact-scoreboard" aria-label="Scores et dernières volées des autres joueurs">
@@ -123,7 +124,7 @@
               <div id="dart-buttons" class="dart-buttons" role="group" aria-label="Choisir une cible de fléchette"></div>
             </div>
             <div class="throw-actions">
-              <button id="undo-button" class="secondary-button" type="button">↶ Annuler le lancer</button>
+              <button id="undo-button" class="secondary-button danger-button" type="button">↶ Annuler le lancer</button>
               <button id="end-turn-button" class="secondary-button" type="button">Terminer la volée</button>
               <button id="show-result-button" class="secondary-button" type="button">Voir le résultat</button>
             </div>
@@ -162,7 +163,7 @@
           <button id="resume-game-button" class="primary-button start-button" type="button" hidden>Reprendre la partie <span aria-hidden="true">→</span></button>
           <div class="result-actions">
             <button id="share-button" class="secondary-button" type="button">Partager le résultat ↗</button>
-            <button id="result-undo-button" class="secondary-button" type="button">↶ Annuler le dernier lancer</button>
+            <button id="result-undo-button" class="secondary-button danger-button" type="button">↶ Annuler le dernier lancer</button>
           </div>
           <p id="result-message" class="game-message" role="status" aria-live="polite"></p>
         </div>

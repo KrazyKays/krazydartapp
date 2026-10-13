@@ -19,7 +19,8 @@ const CURVE_COLORS = ["#55d6ff", "#ff966d", "#b99cff", "#9be37a", "#ffd166", "#f
 function createDartButtons() {
   const buttons = Array.from({ length: 21 }, (_, target) => {
     const button = document.createElement("button");
-    button.className = `dart-button${target === 0 ? " miss-button" : ""}`;
+    const parity = target % 2 === 0 ? "even-button" : "odd-button";
+    button.className = `dart-button ${target === 0 ? "miss-button" : parity}`;
     button.type = "button";
     button.dataset.target = String(target);
     button.textContent = String(target);
@@ -320,6 +321,28 @@ function finishVisit() {
   renderGame();
 }
 
+function lastVisitNodes(player) {
+  if (player.lastVisit === null) {
+    const emptyVisit = document.createElement("span");
+    emptyVisit.className = "last-visit-empty";
+    emptyVisit.textContent = "—";
+    return [emptyVisit];
+  }
+  const darts = document.createElement("span");
+  darts.className = "last-visit-darts";
+  player.lastVisit.darts.forEach((value, dartIndex) => {
+    const dart = document.createElement("span");
+    dart.className = "last-visit-dart";
+    dart.textContent = value;
+    dart.setAttribute("aria-label", `Fléchette ${dartIndex + 1} : ${value}`);
+    darts.append(dart);
+  });
+  const total = document.createElement("span");
+  total.className = "last-visit-total";
+  total.textContent = `${player.lastVisit.score} pt${player.lastVisit.score > 1 ? "s" : ""}${player.lastVisit.busted ? " · annulée" : ""}`;
+  return [darts, total];
+}
+
 function renderScoreboard() {
   const scoreboard = document.querySelector("#scoreboard");
   scoreboard.replaceChildren();
@@ -351,27 +374,7 @@ function renderScoreboard() {
     const lastVisitLabel = document.createElement("span");
     lastVisitLabel.className = "last-visit-label";
     lastVisitLabel.textContent = "Dernière volée";
-    lastVisit.append(lastVisitLabel);
-    if (player.lastVisit === null) {
-      const emptyVisit = document.createElement("span");
-      emptyVisit.className = "last-visit-empty";
-      emptyVisit.textContent = "—";
-      lastVisit.append(emptyVisit);
-    } else {
-      const darts = document.createElement("span");
-      darts.className = "last-visit-darts";
-      for (let dartIndex = 0; dartIndex < player.lastVisit.darts.length; dartIndex += 1) {
-        const dart = document.createElement("span");
-        dart.className = "last-visit-dart";
-        dart.textContent = player.lastVisit.darts[dartIndex];
-        dart.setAttribute("aria-label", `Fléchette ${dartIndex + 1} : ${dart.textContent}`);
-        darts.append(dart);
-      }
-      const total = document.createElement("span");
-      total.className = "last-visit-total";
-      total.textContent = `${player.lastVisit.score} pt${player.lastVisit.score > 1 ? "s" : ""}${player.lastVisit.busted ? " · annulée" : ""}`;
-      lastVisit.append(darts, total);
-    }
+    lastVisit.append(lastVisitLabel, ...lastVisitNodes(player));
     details.append(name, subtitle, lastVisit);
     const score = document.createElement("strong");
     score.className = "score-value";
@@ -398,6 +401,15 @@ function renderActiveTurnSummary() {
   total.className = "current-visit-total";
   total.textContent = `${game.visitScore} pt${game.visitScore > 1 ? "s" : ""}`;
   darts.append(total);
+
+  const previousVisit = document.querySelector("#previous-visit");
+  previousVisit.hidden = game.players.length > 1;
+  if (!previousVisit.hidden) {
+    const label = document.createElement("span");
+    label.className = "last-visit-label";
+    label.textContent = "Volée précédente";
+    previousVisit.replaceChildren(label, ...lastVisitNodes(player));
+  }
 }
 
 function renderCompactScoreboard() {
