@@ -95,12 +95,10 @@ function updatePlayerFields() {
   });
 }
 
-function updateRulesSummary() {
-  if (typeof document === "undefined" || !modeSelect) return;
-  const startRule = document.querySelector("#double-in").checked
+function rulesText(mode, doubleIn, doubleOut) {
+  const startRule = doubleIn
     ? "Il faut d’abord toucher un double pour commencer à marquer."
     : "Chaque fléchette marque dès le premier lancer.";
-  const doubleOut = document.querySelector("#double-out").checked;
   const finishRule = doubleOut
     ? "Finissez à exactement 0 avec un double."
     : "Finissez à exactement 0 ; le dernier lancer n’a pas besoin d’être un double.";
@@ -108,8 +106,16 @@ function updateRulesSummary() {
     ? "Un dépassement, un score de 1 ou un 0 sans double annule la volée."
     : "Un dépassement annule la volée.";
 
-  document.querySelector("#rules-summary-text").textContent =
-    `Partez de ${modeSelect.value} points et soustrayez le score de chaque fléchette. ${startRule} ${finishRule} ${bustRule} Le score revient au début de la volée. Chaque joueur lance jusqu’à 3 fléchettes par tour.`;
+  return `Partez de ${mode} points et soustrayez le score de chaque fléchette. ${startRule} ${finishRule} ${bustRule} Le score revient au début de la volée. Chaque joueur lance jusqu’à 3 fléchettes par tour.`;
+}
+
+function updateRulesSummary() {
+  if (typeof document === "undefined" || !modeSelect) return;
+  document.querySelector("#rules-summary-text").textContent = rulesText(
+    modeSelect.value,
+    document.querySelector("#double-in").checked,
+    document.querySelector("#double-out").checked,
+  );
 }
 
 function createGame(mode, names, rules) {
@@ -782,7 +788,7 @@ function renderGame() {
 
   const current = activePlayer();
   document.querySelector("#game-mode-label").textContent = [`MODE ${game.mode}`, ...activeRules()].join(" · ");
-  document.querySelector("#turn-label").textContent = `Au tour de ${current.name}`;
+  document.querySelector("#rules-help-text").textContent = rulesText(game.mode, game.doubleIn, game.doubleOut);
   document.querySelector("#round-label").textContent = `TOUR ${game.round}`;
   document.querySelector("#active-player-name").textContent = current.name;
   document.querySelector("#darts-left").textContent = `${3 - game.dartsInVisit} FLÉCHETTE${3 - game.dartsInVisit > 1 ? "S" : ""}`;
@@ -884,6 +890,11 @@ if (typeof document !== "undefined") {
     renderGame();
   });
   document.querySelector("#back-button").addEventListener("click", showSetup);
+  document.querySelector("#rules-help-button").addEventListener("click", () => {
+    const panel = document.querySelector("#rules-help-panel");
+    panel.hidden = !panel.hidden;
+    document.querySelector("#rules-help-button").setAttribute("aria-expanded", String(!panel.hidden));
+  });
   document.querySelector("#new-game-button").addEventListener("click", showSetup);
   document.querySelector("#undo-button").addEventListener("click", undoMove);
   document.querySelector("#result-undo-button").addEventListener("click", undoMove);
