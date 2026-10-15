@@ -221,11 +221,10 @@ function endVisit(message = "", messageType = "") {
   game.messageType = messageType;
 }
 
-function registerDart(target) {
+function registerDart(target, multiplier = selectedMultiplier) {
   if (!game || isGameOver(game)) return;
   const sector = Number(target);
   const isBull = sector === 25 || sector === 50;
-  const multiplier = selectedMultiplier;
   const points = isBull ? sector : sector * multiplier;
   const isDouble = sector === 50 || (multiplier === 2 && sector !== 0 && !isBull);
   selectedMultiplier = 1;
@@ -326,6 +325,20 @@ function finishVisit() {
   addLog(`${player.name} — volée terminée`, points);
   endVisit("Volée terminée.");
   renderGame();
+}
+
+function applyVoiceDarts(darts, snapshot) {
+  const turnChanged = !game || activePlayer().id !== snapshot.playerId || game.round !== snapshot.round;
+  if (turnChanged) return { applied: 0, remaining: darts, stale: true };
+
+  const capacity = 3 - game.dartsInVisit;
+  let applied = 0;
+  while (applied < darts.length && applied < capacity && !isGameOver(game)) {
+    if (activePlayer().id !== snapshot.playerId || game.round !== snapshot.round) break;
+    registerDart(darts[applied].target, darts[applied].multiplier);
+    applied += 1;
+  }
+  return { applied, remaining: darts.slice(applied), stale: false };
 }
 
 function lastVisitNodes(player) {
@@ -915,6 +928,7 @@ if (typeof module !== "undefined" && module.exports) {
     cloneGame,
     buildResultRows,
     registerDart,
+    applyVoiceDarts,
     finishVisit,
     setMultiplier,
     getGame: () => game,

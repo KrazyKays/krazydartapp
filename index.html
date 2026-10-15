@@ -8,7 +8,10 @@
     <title>Krazy Dart App — KDA</title>
     <link rel="icon" href="./favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="./app.css">
+    <script src="./voice-parser.js" defer></script>
+    <script src="./voice-recognizer.js" defer></script>
     <script src="./app.js" defer></script>
+    <script src="./voice-input.js" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -54,7 +57,7 @@
           <button id="add-player" class="text-button" type="button">＋ Ajouter un joueur</button>
 
           <button class="primary-button start-button" type="submit">Lancer la partie <span aria-hidden="true">↗</span></button>
-          <p class="privacy-note">Aucun compte, aucune donnée envoyée. La partie reste dans cet onglet.</p>
+          <p class="privacy-note">Aucun compte. Hors saisie vocale, aucune donnée n’est envoyée ; la partie reste dans cet onglet.</p>
         </form>
 
       </section>
@@ -127,6 +130,24 @@
               <span class="field-label target-label">Cible</span>
               <div id="dart-buttons" class="dart-buttons" role="group" aria-label="Choisir une cible de fléchette"></div>
             </div>
+            <section id="voice-panel" class="voice-panel" aria-label="Saisie vocale">
+              <div class="voice-controls">
+                <button id="voice-toggle" class="secondary-button" type="button" aria-pressed="false">🎙 Parler</button>
+                <p id="voice-status" class="input-help" role="status" aria-live="polite"></p>
+              </div>
+              <p id="voice-transcript" class="voice-transcript" aria-live="polite"></p>
+              <div id="voice-alternatives" class="voice-alternatives"></div>
+              <div id="voice-pending" class="voice-pending" hidden>
+                <p class="eyebrow">ANNONCE À VALIDER</p>
+                <ol id="voice-darts" class="voice-darts"></ol>
+                <p id="voice-unparsed" class="input-help"></p>
+                <div class="voice-pending-actions">
+                  <button id="voice-validate" class="primary-button" type="button">Valider l’annonce</button>
+                  <button id="voice-cancel" class="secondary-button danger-button" type="button">Annuler l’annonce</button>
+                </div>
+              </div>
+              <p class="input-help">La saisie vocale envoie l’audio au service de reconnaissance de votre navigateur. Le score reste local.</p>
+            </section>
             <div class="throw-actions">
               <button id="undo-button" class="secondary-button danger-button" type="button">↶ Annuler le lancer</button>
               <button id="end-turn-button" class="secondary-button" type="button">Terminer la volée</button>
