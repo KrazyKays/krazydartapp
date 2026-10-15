@@ -235,6 +235,23 @@ h2 { margin-bottom: 0; font-size: 21px; letter-spacing: -.8px; }
 .dart-button.bull-button { grid-column: span 2; color: var(--cyan); font-family: "Manrope", "Segoe UI", sans-serif; font-size: 11px; font-weight: 700; }
 .dart-button:disabled { cursor: not-allowed; opacity: .4; }
 .throw-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 9px; }
+.voice-panel { display: grid; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.voice-controls { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; }
+.voice-controls .input-help { margin: 0; }
+.voice-controls .secondary-button { min-width: 120px; }
+.voice-transcript { min-height: 17px; margin: 0; color: var(--text); font-size: 12px; font-style: italic; }
+.voice-alternatives { display: flex; flex-wrap: wrap; gap: 6px; }
+.voice-alternative { min-height: 28px; padding: 4px 9px; border: 1px dashed var(--border); border-radius: 6px; background: transparent; color: var(--muted); font-size: 10px; }
+.voice-pending { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.voice-pending .eyebrow { margin: 0; }
+.voice-darts { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.voice-dart { display: grid; grid-template-columns: 1fr auto auto auto; gap: 6px; align-items: center; }
+.voice-dart-label { color: var(--text); font-size: 11px; font-weight: 700; }
+.voice-dart.is-invalid .voice-dart-label { color: var(--orange); }
+.voice-select { min-height: 32px; padding: 0 6px; font-size: 11px; }
+.voice-pending-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.voice-pending-actions .primary-button { min-height: 40px; font-size: 10px; }
+.voice-pending .input-help { margin: 0; }
 .secondary-button { min-height: 40px; padding: 6px; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: #bdc7b8; font-size: 10px; }
 .secondary-button:hover:not(:disabled) { border-color: #7d8b78; color: var(--text); }
 .secondary-button:disabled { cursor: not-allowed; opacity: .4; }
