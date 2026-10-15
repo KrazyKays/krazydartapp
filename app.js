@@ -225,8 +225,9 @@ function registerDart(target) {
   if (!game || isGameOver(game)) return;
   const sector = Number(target);
   const isBull = sector === 25 || sector === 50;
-  const points = isBull ? sector : sector * selectedMultiplier;
-  const isDouble = sector === 50 || (selectedMultiplier === 2 && sector !== 0 && !isBull);
+  const multiplier = selectedMultiplier;
+  const points = isBull ? sector : sector * multiplier;
+  const isDouble = sector === 50 || (multiplier === 2 && sector !== 0 && !isBull);
   selectedMultiplier = 1;
   remember();
   const player = activePlayer();
@@ -243,7 +244,7 @@ function registerDart(target) {
     sector === 0 ? "0"
       : sector === 25 ? "Bull 25"
         : sector === 50 ? "Bull 50"
-          : `${selectedMultiplier === 2 ? "D" : selectedMultiplier === 3 ? "T" : ""}${sector}`,
+          : `${multiplier === 2 ? "D" : multiplier === 3 ? "T" : ""}${sector}`,
   );
   player.stats.darts += 1;
   if (points === 0) {
